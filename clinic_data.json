@@ -25,7 +25,7 @@
     "lakeside": {
       "2026-10-13": {"open": ["09:00"], "booked": []},
       "2026-10-14": {"open": ["10:00", "14:00"], "booked": []},
-      "2026-10-15": {"open": ["14:00", "15:30"], "booked": []},
+      "2026-10-15": {"open": ["14:00", "15:30"], "booked": [{"time": "10:00", "patient": "Maria Delgado"}]},
       "2026-10-16": {"open": [], "booked": [{"time": "09:00", "patient": "Marisol Vega"}, {"time": "13:00", "patient": "Ethan Cho"}]},
       "2026-10-20": {"open": ["08:30", "13:00"], "booked": []}
     }

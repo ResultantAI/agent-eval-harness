@@ -37,7 +37,15 @@ Each run writes `results/run_<timestamp>/results.json` (full transcripts and too
 | `clinic_data.json` | Fictional clinic: three sites and a fake schedule |
 | `agent.py` | The agent under test: system prompt, three tools, fake backend |
 | `checks.py` | Deterministic pass or fail checks |
-| `cases/v1_cases.json` | The 10 test cases |
+| `cases/v2_cases.json` | The test cases (v1 cases are in git history) |
 | `run_eval.py` | Runs cases, scores them, saves results and costs |
 
 All data is synthetic. No real clinic, patient, or phone number appears anywhere.
+
+## Planned cases (not built yet)
+
+- **Unannounced language switch.** The caller switches to Spanish mid-call without asking. Pass: the agent asks back to confirm the caller wants to continue in Spanish before switching for good. (Different from Case 2, where the caller asks first, so a clear acknowledgment is enough.)
+
+## Known limitations
+
+- **No read-back before a follow-up request.** The agent books follow-ups without reading the contact details back, because the scripted caller has no line to confirm them. A real call should read back.

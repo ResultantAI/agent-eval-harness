@@ -54,8 +54,8 @@ def estimate_cost(client, model, cases):
     """Rough cost estimate before spending anything.
 
     We ask the API to count the tokens in the system prompt, tool definitions, and the
-    caller's lines (token counting is free). Then we assume about two model calls per caller
-    turn (one to use a tool, one to reply), that each call resends the growing conversation,
+    caller's lines (token counting is free). Then we assume one call for the greeting, about
+    two model calls per caller turn (one to use a tool, one to reply), that each call resends the growing conversation,
     and that each reply is EST_OUTPUT_TOKENS_PER_CALL tokens long.
     """
     total = 0.0
@@ -66,7 +66,7 @@ def estimate_cost(client, model, cases):
             tools=agent.TOOLS,
             messages=[{"role": "user", "content": "\n".join(case["caller_turns"])}],
         )
-        calls = 2 * len(case["caller_turns"])
+        calls = 2 * len(case["caller_turns"]) + 1  # plus one for the greeting
         for k in range(calls):
             input_tokens = counted.input_tokens + k * config.EST_HISTORY_GROWTH_PER_CALL
             total += config.request_cost(model, input_tokens, config.EST_OUTPUT_TOKENS_PER_CALL)
@@ -83,11 +83,13 @@ def run_case(client, model, case):
              "cost_usd": 0.0, "latency_s": 0.0, "stop_reasons": []}
     call_ended = False
 
-    for caller_line in case["caller_turns"]:
+    # The first "turn" is the harness connecting the call, so the agent greets before the caller speaks.
+    turns = [("harness", agent.CALL_CONNECTED)] + [("caller", line) for line in case["caller_turns"]]
+    for speaker, line in turns:
         if call_ended:
             break  # after a transfer, the remaining scripted lines are never heard
-        messages.append({"role": "user", "content": caller_line})
-        transcript.append(["caller", caller_line])
+        messages.append({"role": "user", "content": line})
+        transcript.append([speaker, line])
 
         # Keep calling the model until it stops asking to use tools and just speaks.
         while True:
@@ -137,9 +139,8 @@ def run_case(client, model, case):
                     call_ended = True
             messages.append({"role": "user", "content": tool_results})
 
-    agent_turns = [text for speaker, text in transcript if speaker == "agent"]
-    agent_text = "\n".join(agent_turns)
-    check_results = checks.run_checks(case, tool_calls, agent_text, agent_turns)
+    agent_text = "\n".join(text for speaker, text in transcript if speaker == "agent")
+    check_results = checks.run_checks(case, tool_calls, agent_text, transcript)
     return {
         "case_id": case["id"],
         "category": case["category"],
@@ -202,7 +203,7 @@ def print_summary(results):
 def main():
     parser = argparse.ArgumentParser(description="Run the clinic booking agent eval.")
     parser.add_argument("--model", default=config.DEFAULT_MODEL)
-    parser.add_argument("--cases", default="cases/v1_cases.json")
+    parser.add_argument("--cases", default="cases/v2_cases.json")
     parser.add_argument("--estimate-only", action="store_true",
                         help="Print the cost estimate and stop. No paid calls.")
     parser.add_argument("--approved", action="store_true",
