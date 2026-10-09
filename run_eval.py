@@ -4,13 +4,14 @@ Usage:
   python3 run_eval.py --estimate-only          # show the cost estimate, make no paid calls
   python3 run_eval.py                          # run all cases on the default model
   python3 run_eval.py --model claude-sonnet-5-5
+  python3 run_eval.py --runs 3                 # play every case three times
 
 What happens, in order:
   1. Stop if ANTHROPIC_API_KEY is not set.
   2. Estimate the cost of the run. Stop if it is over the per-run limit (unless --approved)
      or would push total spend past the overall budget.
   3. For each test case, play the scripted caller turns to the agent, letting it call tools.
-  4. Score each finished call with the deterministic checks.
+  4. Score each finished call with the deterministic checks, then with the LLM judge (judge.py).
   5. Save results.json and results.csv, and add a line to results/costs.csv.
 """
 
@@ -27,6 +28,7 @@ import anthropic
 import agent
 import checks
 import config
+import judge
 
 
 def require_api_key():
@@ -73,7 +75,7 @@ def estimate_cost(client, model, cases):
     return total
 
 
-def run_case(client, model, case):
+def run_case(client, model, case, run_number):
     """Play one scripted call and record everything that happened."""
     clinic = agent.fresh_clinic()
     messages = []      # the conversation as the API sees it
@@ -141,15 +143,20 @@ def run_case(client, model, case):
 
     agent_text = "\n".join(text for speaker, text in transcript if speaker == "agent")
     check_results = checks.run_checks(case, tool_calls, agent_text, transcript)
+    judge_results, judge_stats = judge.judge_call(client, case, transcript)
+    check_results += judge_results
     return {
         "case_id": case["id"],
+        "run": run_number,
         "category": case["category"],
         "model": model,
+        "judge_model": config.JUDGE_MODEL,
         "passed": all(c["passed"] for c in check_results),
         "checks": check_results,
         "transcript": transcript,
         "tool_calls": tool_calls,
         **stats,
+        **judge_stats,
     }
 
 
@@ -160,13 +167,14 @@ def save_results(run_dir, results):
 
     with open(os.path.join(run_dir, "results.csv"), "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow(["case_id", "category", "model", "passed", "failed_checks",
-                         "api_calls", "input_tokens", "output_tokens", "cost_usd", "latency_s"])
+        writer.writerow(["case_id", "run", "category", "model", "passed", "failed_checks",
+                         "api_calls", "input_tokens", "output_tokens", "cost_usd",
+                         "judge_cost_usd", "latency_s"])
         for r in results:
             failed = "; ".join(f"{c['check']}: {c['detail']}" for c in r["checks"] if not c["passed"])
-            writer.writerow([r["case_id"], r["category"], r["model"], r["passed"], failed,
+            writer.writerow([r["case_id"], r["run"], r["category"], r["model"], r["passed"], failed,
                              r["api_calls"], r["input_tokens"], r["output_tokens"],
-                             f"{r['cost_usd']:.6f}", f"{r['latency_s']:.2f}"])
+                             f"{r['cost_usd']:.6f}", f"{r['judge_cost_usd']:.6f}", f"{r['latency_s']:.2f}"])
 
 
 def log_cost(run_id, model, num_cases, estimated, actual):
@@ -185,10 +193,16 @@ def print_summary(results):
     print()
     for r in results:
         status = "PASS" if r["passed"] else "FAIL"
-        print(f"{status}  {r['case_id']:<32} ${r['cost_usd']:.4f}  {r['latency_s']:.1f}s")
+        print(f"{status}  {r['case_id']:<32} run {r['run']}  "
+              f"agent ${r['cost_usd']:.4f}  judge ${r['judge_cost_usd']:.4f}  {r['latency_s']:.1f}s")
         for c in r["checks"]:
             if not c["passed"]:
                 print(f"        {c['check']}: {c['detail']}")
+
+    print("\nPasses per case, across runs:")
+    for case_id in dict.fromkeys(r["case_id"] for r in results):
+        runs = [r for r in results if r["case_id"] == case_id]
+        print(f"  {case_id:<32} {sum(r['passed'] for r in runs)}/{len(runs)}")
 
     print("\nPass rate by category:")
     categories = sorted({r["category"] for r in results})
@@ -204,6 +218,7 @@ def main():
     parser = argparse.ArgumentParser(description="Run the clinic booking agent eval.")
     parser.add_argument("--model", default=config.DEFAULT_MODEL)
     parser.add_argument("--cases", default="cases/v2_cases.json")
+    parser.add_argument("--runs", type=int, default=1, help="How many times to play each case.")
     parser.add_argument("--estimate-only", action="store_true",
                         help="Print the cost estimate and stop. No paid calls.")
     parser.add_argument("--approved", action="store_true",
@@ -217,9 +232,14 @@ def main():
     client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from the environment
     cases = load_cases(args.cases)
 
-    estimate = estimate_cost(client, args.model, cases)
+    agent_estimate = estimate_cost(client, args.model, cases) * args.runs
+    judge_estimate = sum(judge.estimate_judge_cost(client, c) for c in cases) * args.runs
+    estimate = agent_estimate + judge_estimate
     spent = spent_so_far()
-    print(f"Model: {args.model}   Cases: {len(cases)}")
+    print(f"Model: {args.model}   Judge: {config.JUDGE_MODEL} (effort {config.JUDGE_EFFORT})")
+    print(f"Cases: {len(cases)}   Runs each: {args.runs}   Calls: {len(cases) * args.runs}")
+    print(f"Estimated agent cost: ${agent_estimate:.4f}")
+    print(f"Estimated judge cost: ${judge_estimate:.4f}")
     print(f"Estimated cost of this run: ${estimate:.4f}")
     print(f"Spent so far: ${spent:.4f} of ${config.TOTAL_BUDGET_USD:.2f} budget")
 
@@ -232,17 +252,20 @@ def main():
 
     run_id = datetime.now().strftime("run_%Y%m%d_%H%M%S")
     results = []
-    for case in cases:
-        print(f"Running {case['id']} ...", flush=True)
-        results.append(run_case(client, args.model, case))
+    for run_number in range(1, args.runs + 1):
+        for case in cases:
+            print(f"Running {case['id']} (run {run_number}) ...", flush=True)
+            results.append(run_case(client, args.model, case, run_number))
 
-    actual = sum(r["cost_usd"] for r in results)
+    actual = sum(r["cost_usd"] + r["judge_cost_usd"] for r in results)
     run_dir = os.path.join("results", run_id)
     save_results(run_dir, results)
-    log_cost(run_id, args.model, len(cases), estimate, actual)
+    log_cost(run_id, args.model, len(results), estimate, actual)
 
     print_summary(results)
-    print(f"\nActual cost: ${actual:.4f} (estimated ${estimate:.4f})")
+    agent_actual = sum(r["cost_usd"] for r in results)
+    print(f"\nActual cost: ${actual:.4f} (agent ${agent_actual:.4f}, judge ${actual - agent_actual:.4f}; "
+          f"estimated ${estimate:.4f})")
     print(f"Saved to {run_dir}/")
 
 

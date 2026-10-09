@@ -39,6 +39,18 @@ EST_HISTORY_GROWTH_PER_CALL = 500    # each call resends the conversation so far
 
 COSTS_LOG = "results/costs.csv"
 
+# The LLM judge. Fixed to Opus, whatever model is under test, so no model grades itself.
+# Opus 5.5 always thinks (it cannot be turned off) and does not accept temperature,
+# so the judge is not fully repeatable. Every answer must quote the transcript, and code
+# checks that the quote is really there.
+JUDGE_MODEL = "claude-opus-5-5"
+JUDGE_EFFORT = "high"            # how hard it thinks; Opus 5.5 defaults to "medium"
+JUDGE_MAX_TOKENS = 16000
+
+# Assumptions used only for the judge's cost estimate.
+EST_JUDGE_TRANSCRIPT_TOKENS = 1500   # a short call, with tool results, as the judge sees it
+EST_JUDGE_OUTPUT_TOKENS = 3000       # thinking plus a quote and reason per question, rounded up
+
 
 def request_cost(model, input_tokens, output_tokens):
     """Dollar cost of one API request."""
