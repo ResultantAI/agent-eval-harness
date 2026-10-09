@@ -1,0 +1,33 @@
+{
+  "_note": "Entirely fictional. Clinic, sites, addresses, and patient names are invented. Phone numbers use the 555-01xx range reserved for fiction.",
+  "clinic_name": "Juniper Valley Health",
+  "today": "2026-10-12",
+  "sites": {
+    "downtown": {"name": "Juniper Valley Health Downtown", "address": "100 Alder Street"},
+    "northgate": {"name": "Juniper Valley Health Northgate", "address": "2450 Northgate Parkway"},
+    "lakeside": {"name": "Juniper Valley Health Lakeside", "address": "18 Heron Lane"}
+  },
+  "schedule": {
+    "downtown": {
+      "2026-10-13": {"open": ["09:00", "11:00", "14:00"], "booked": [{"time": "10:30", "patient": "Dana Whitfield"}]},
+      "2026-10-14": {"open": ["09:00", "13:00", "16:00"], "booked": []},
+      "2026-10-15": {"open": ["10:00", "15:00"], "booked": [{"time": "09:00", "patient": "Henry Castellano"}]},
+      "2026-10-16": {"open": ["08:30", "12:00"], "booked": []},
+      "2026-10-20": {"open": ["09:00", "10:00", "14:30"], "booked": []}
+    },
+    "northgate": {
+      "2026-10-13": {"open": ["08:00", "13:30"], "booked": []},
+      "2026-10-14": {"open": ["09:00", "15:00", "16:30"], "booked": [{"time": "11:00", "patient": "Priya Natarajan"}]},
+      "2026-10-15": {"open": ["09:30"], "booked": []},
+      "2026-10-16": {"open": ["10:00", "14:00"], "booked": []},
+      "2026-10-20": {"open": ["11:00"], "booked": []}
+    },
+    "lakeside": {
+      "2026-10-13": {"open": ["09:00"], "booked": []},
+      "2026-10-14": {"open": ["10:00", "14:00"], "booked": []},
+      "2026-10-15": {"open": ["14:00", "15:30"], "booked": []},
+      "2026-10-16": {"open": [], "booked": [{"time": "09:00", "patient": "Marisol Vega"}, {"time": "13:00", "patient": "Ethan Cho"}]},
+      "2026-10-20": {"open": ["08:30", "13:00"], "booked": []}
+    }
+  }
+}

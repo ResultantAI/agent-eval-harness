@@ -1,0 +1,2 @@
+timestamp,run_id,model,cases,estimated_usd,actual_usd,cumulative_usd
+2026-10-08T23:06:40,run_20261008_230516,claude-haiku-5-5,10,0.0277,0.0090,0.0090
