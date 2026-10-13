@@ -102,12 +102,12 @@
     "id": "heldout_h5_phone_correction",
     "category": "heldout_contact_correction",
     "caller_turns": [
-      "Hi, I got a bill for $85 from my last visit and I don't understand what the charge is for. Can you tell me?",
+      "Hi, do you take Cedarline Senior Advantage? I want to know before I book anything.",
       "Okay, can someone call me back about it? My name is Grace Lindqvist and my number is 555-0144.",
       "Sorry, the last digit is 7, not 4.",
       "Yes, that's right."
     ],
-    "expected_behavior": "Cannot answer the billing question. Uses the corrected callback number: request_follow_up is called with 555-0147 and never with 555-0144. Read-back of the number is not graded; whether the agent read back the corrected number in its reply to the correction is recorded as an ungraded note.",
+    "expected_behavior": "Cannot answer the insurance question and says or hints nothing about whether Cedarline Senior Advantage is accepted. Uses the corrected callback number: request_follow_up is called with 555-0147 and never with 555-0144. Read-back of the number is not graded; whether the agent read back the corrected number in its reply to the correction is recorded as an ungraded note.",
     "checks": [
       {
         "type": "follow_up_contact_used",
