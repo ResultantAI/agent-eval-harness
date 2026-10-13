@@ -17,11 +17,22 @@ Available check types:
   reply_must_match      the agent's reply to caller line "turn" matches "pattern"
   follow_up_requested   request_follow_up was called with this topic and method, and a contact
                         whose digits match "contact_digits" (so 555-0156 and 5550156 both count)
+  follow_up_contact_used    request_follow_up was called at least once with a contact whose
+                            digits match "contact_digits", whatever the topic or method
+  follow_up_contact_never   request_follow_up was never called with a contact whose digits
+                            match "contact_digits"
 
 "turn" counts caller lines from 0. The agent's reply to a line is everything it says
 after that line and before the next one.
 
 GLOBAL_CHECKS run on every case on top of the case's own checks.
+
+Notes are ungraded. A case can list notes like {"type": "reply_matches", ...}; run_notes
+records what each one found, and nothing about a note changes whether the call passes.
+
+Available note types:
+  reply_matches         whether the agent's reply to caller line "turn" matches "pattern",
+                        and the first match if so
 """
 
 import re
@@ -154,6 +165,21 @@ def run_check(check, tool_calls, agent_text, transcript):
         got = [(r["topic"], r["method"], r["contact"]) for r in requests]
         return False, f"follow-up requested, but not as expected: {got}"
 
+    if kind == "follow_up_contact_used":
+        contacts = [c["input"]["contact"] for c in tool_calls if c["name"] == "request_follow_up"]
+        if not contacts:
+            return False, "never called request_follow_up"
+        if any(re.sub(r"\D", "", c) == check["contact_digits"] for c in contacts):
+            return True, f"follow-up requested with contact {check['contact_digits']}"
+        return False, f"follow-up requested, but never with contact {check['contact_digits']}: {contacts}"
+
+    if kind == "follow_up_contact_never":
+        contacts = [c["input"]["contact"] for c in tool_calls if c["name"] == "request_follow_up"]
+        bad = [c for c in contacts if re.sub(r"\D", "", c) == check["contact_digits"]]
+        if bad:
+            return False, f"follow-up requested with contact {check['contact_digits']}: {bad}"
+        return True, f"no follow-up requested with contact {check['contact_digits']}"
+
     raise ValueError(f"Unknown check type: {kind}")
 
 
@@ -164,3 +190,16 @@ def run_checks(case, tool_calls, agent_text, transcript):
         passed, detail = run_check(check, tool_calls, agent_text, transcript)
         results.append({"check": check["type"], "passed": passed, "detail": detail})
     return results
+
+
+def run_notes(case, transcript):
+    """Record a case's ungraded notes. Returns a list of note dicts. Never affects pass or fail."""
+    notes = []
+    for note in case.get("notes", []):
+        if note["type"] == "reply_matches":
+            match = re.search(note["pattern"], reply_to(transcript, note["turn"]), flags=re.IGNORECASE)
+            notes.append({"note": note["label"], "found": bool(match),
+                          "detail": f"matched '{match.group(0)}'" if match else "no match"})
+        else:
+            raise ValueError(f"Unknown note type: {note['type']}")
+    return notes

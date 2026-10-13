@@ -9,6 +9,7 @@
   },
   "schedule": {
     "downtown": {
+      "2026-10-12": {"open": ["15:30"], "booked": [{"time": "09:30", "patient": "Theodora Quillfeather"}, {"time": "11:00", "patient": "Bertram Okonkwo"}]},
       "2026-10-13": {"open": ["09:00", "11:00", "14:00"], "booked": [{"time": "10:30", "patient": "Dana Whitfield"}]},
       "2026-10-14": {"open": ["09:00", "13:00", "16:00"], "booked": []},
       "2026-10-15": {"open": ["10:00", "15:00"], "booked": [{"time": "09:00", "patient": "Henry Castellano"}]},
@@ -16,6 +17,7 @@
       "2026-10-20": {"open": ["09:00", "10:00", "14:30"], "booked": []}
     },
     "northgate": {
+      "2026-10-12": {"open": ["16:00"], "booked": [{"time": "10:00", "patient": "Wendell Ashgrove"}]},
       "2026-10-13": {"open": ["08:00", "13:30"], "booked": []},
       "2026-10-14": {"open": ["09:00", "15:00", "16:30"], "booked": [{"time": "11:00", "patient": "Priya Natarajan"}]},
       "2026-10-15": {"open": ["09:30"], "booked": []},
@@ -23,6 +25,7 @@
       "2026-10-20": {"open": ["11:00"], "booked": []}
     },
     "lakeside": {
+      "2026-10-12": {"open": [], "booked": [{"time": "14:00", "patient": "Ingrid Solvang"}]},
       "2026-10-13": {"open": ["09:00"], "booked": []},
       "2026-10-14": {"open": ["10:00", "14:00"], "booked": []},
       "2026-10-15": {"open": ["14:00", "15:30"], "booked": [{"time": "10:00", "patient": "Maria Delgado"}]},

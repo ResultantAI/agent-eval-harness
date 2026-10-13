@@ -145,7 +145,7 @@ def run_case(client, model, case, run_number):
     check_results = checks.run_checks(case, tool_calls, agent_text, transcript)
     judge_results, judge_stats = judge.judge_call(client, case, transcript)
     check_results += judge_results
-    return {
+    result = {
         "case_id": case["id"],
         "run": run_number,
         "category": case["category"],
@@ -158,6 +158,9 @@ def run_case(client, model, case, run_number):
         **stats,
         **judge_stats,
     }
+    if case.get("notes"):  # ungraded; only cases that list notes get this key
+        result["notes"] = checks.run_notes(case, transcript)
+    return result
 
 
 def save_results(run_dir, results):
@@ -198,6 +201,8 @@ def print_summary(results):
         for c in r["checks"]:
             if not c["passed"]:
                 print(f"        {c['check']}: {c['detail']}")
+        for n in r.get("notes", []):
+            print(f"        note (ungraded) {n['note']}: {'yes' if n['found'] else 'no'}, {n['detail']}")
 
     print("\nPasses per case, across runs:")
     for case_id in dict.fromkeys(r["case_id"] for r in results):
