@@ -5,6 +5,7 @@ Usage:
   python3 run_eval.py                          # run all cases on the default model
   python3 run_eval.py --model claude-sonnet-5-5
   python3 run_eval.py --runs 3                 # play every case three times
+  python3 run_eval.py --agent do_nothing --runs 3   # Test 2: fixed-reply floor on the tuned five, judge still paid
 
 What happens, in order:
   1. Stop if ANTHROPIC_API_KEY is not set.
@@ -28,6 +29,7 @@ import anthropic
 import agent
 import checks
 import config
+import do_nothing_agent
 import judge
 
 
@@ -141,6 +143,27 @@ def run_case(client, model, case, run_number):
                     call_ended = True
             messages.append({"role": "user", "content": tool_results})
 
+    return finish_call(client, model, case, run_number, transcript, tool_calls, stats)
+
+
+def run_do_nothing_case(client, case, run_number):
+    """Play one scripted call to the do-nothing agent: the same fixed reply every turn, no tools.
+
+    No agent API calls, so the agent cost is zero. The call is still graded by the same code
+    checks and the same judge as the real agent, and the judge is still a paid call.
+    """
+    transcript = []
+    stats = {"api_calls": 0, "input_tokens": 0, "output_tokens": 0,
+             "cost_usd": 0.0, "latency_s": 0.0, "stop_reasons": []}
+    turns = [("harness", agent.CALL_CONNECTED)] + [("caller", line) for line in case["caller_turns"]]
+    for speaker, line in turns:
+        transcript.append([speaker, line])
+        transcript.append(["agent", do_nothing_agent.reply(line)])
+    return finish_call(client, do_nothing_agent.LABEL, case, run_number, transcript, [], stats)
+
+
+def finish_call(client, model, case, run_number, transcript, tool_calls, stats):
+    """Score a finished call with the code checks and the judge, and build its result."""
     agent_text = "\n".join(text for speaker, text in transcript if speaker == "agent")
     check_results = checks.run_checks(case, tool_calls, agent_text, transcript)
     judge_results, judge_stats = judge.judge_call(client, case, transcript)
@@ -222,6 +245,9 @@ def print_summary(results):
 def main():
     parser = argparse.ArgumentParser(description="Run the clinic booking agent eval.")
     parser.add_argument("--model", default=config.DEFAULT_MODEL)
+    parser.add_argument("--agent", choices=["real", "do_nothing"], default="real",
+                        help="real: the agent in agent.py. do_nothing: the fixed-reply floor (Test 2), "
+                             "tuned five only.")
     parser.add_argument("--cases", default="cases/v2_cases.json")
     parser.add_argument("--runs", type=int, default=1, help="How many times to play each case.")
     parser.add_argument("--estimate-only", action="store_true",
@@ -232,16 +258,22 @@ def main():
 
     if args.model not in config.PRICES:
         sys.exit(f"{args.model} is not in config.PRICES. Verify its ID and price first.")
+    do_nothing = args.agent == "do_nothing"
+    if do_nothing and args.cases != "cases/v2_cases.json":
+        sys.exit("The do-nothing agent runs on the tuned five only (cases/v2_cases.json).")
 
     require_api_key()
     client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from the environment
     cases = load_cases(args.cases)
 
-    agent_estimate = estimate_cost(client, args.model, cases) * args.runs
+    agent_estimate = 0.0 if do_nothing else estimate_cost(client, args.model, cases) * args.runs
     judge_estimate = sum(judge.estimate_judge_cost(client, c) for c in cases) * args.runs
     estimate = agent_estimate + judge_estimate
     spent = spent_so_far()
-    print(f"Model: {args.model}   Judge: {config.JUDGE_MODEL} (effort {config.JUDGE_EFFORT})")
+    agent_label = do_nothing_agent.LABEL if do_nothing else args.model
+    if do_nothing:
+        print("Agent: DO-NOTHING (Test 2), fixed reply, no tools, no agent API calls")
+    print(f"Model: {agent_label}   Judge: {config.JUDGE_MODEL} (effort {config.JUDGE_EFFORT})")
     print(f"Cases: {len(cases)}   Runs each: {args.runs}   Calls: {len(cases) * args.runs}")
     print(f"Estimated agent cost: ${agent_estimate:.4f}")
     print(f"Estimated judge cost: ${judge_estimate:.4f}")
@@ -255,17 +287,21 @@ def main():
     if spent + estimate > config.TOTAL_BUDGET_USD:
         sys.exit("This run could push total spend past the budget. Stopping.")
 
-    run_id = datetime.now().strftime("run_%Y%m%d_%H%M%S")
+    # Do-nothing runs get their own prefix so they never sort or read as a real agent run.
+    run_id = datetime.now().strftime("donothing_%Y%m%d_%H%M%S" if do_nothing else "run_%Y%m%d_%H%M%S")
     results = []
     for run_number in range(1, args.runs + 1):
         for case in cases:
             print(f"Running {case['id']} (run {run_number}) ...", flush=True)
-            results.append(run_case(client, args.model, case, run_number))
+            if do_nothing:
+                results.append(run_do_nothing_case(client, case, run_number))
+            else:
+                results.append(run_case(client, args.model, case, run_number))
 
     actual = sum(r["cost_usd"] + r["judge_cost_usd"] for r in results)
     run_dir = os.path.join("results", run_id)
     save_results(run_dir, results)
-    log_cost(run_id, args.model, len(results), estimate, actual)
+    log_cost(run_id, agent_label, len(results), estimate, actual)
 
     print_summary(results)
     agent_actual = sum(r["cost_usd"] for r in results)
