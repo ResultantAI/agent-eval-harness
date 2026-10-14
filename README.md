@@ -14,11 +14,11 @@ It grades in three ways. First, code checks, the mechanical half: was a tool cal
 
 ## The scoreboard
 
-Here is how the scoreboard went. The baseline was 0 of 15, because every call failed to greet the caller with the disclosure check; 8 would have passed without it. It was a broken test as much as a broken agent. The next run was 11 of 15, where we added AI disclosure and took the transfer out of emergencies. On run 3 we tightened the emergency reply and the privacy refusal, but I flagged it as overstated: Case 4 still presupposed an appointment. On the regrade we saw 12 of 15, the judge only, with the agent frozen. This was the honest number, once the judge stopped grading the same behavior two ways. Then run 4, a fresh run with the agent unchanged, came in at 13 of 15, where one Case 4 call happened to word its refusal cleanly.
+Here is how the scoreboard went. The baseline was 0 of 15, because every call failed to greet the caller with the disclosure check; 8 would have passed without it. It was a broken test as much as a broken agent. The next run was 11 of 15, where we added AI disclosure and took the transfer out of emergencies. On run 3 we tightened the emergency reply and the privacy refusal, but I flagged it as overstated: Case 4 still presupposed an appointment. On the regrade we saw 12 of 15, the judge only, with the agent frozen. This was the honest number, once the judge stopped grading the same behavior two ways. Then run 4, a fresh run with the agent unchanged, came in at 13 of 15, where one Case 4 call happened to word its refusal cleanly. Then run 5, the held-out set: five new cases, run once, never tuned against, and scored separately from the tuned five. I wrote my predictions down before the run: 13 of 15. It came in at 12 of 15. I was right on the first three held-out cases, scoring 3/3 for the reasons in my predictions. I was wrong on H5, because I didn't realize the agent would not be able to correct a phone number. This is a tools failure.
 
 ## Known limits
 
-A few things I most want a reader to see. First, three runs per case is a small sample, and Case 4 can swing, so this would need more runs. Second, this is text, not voice, on Haiku, not the live model. It is a bench test, definitely not the last gate before production. Third, the agent and the judge both run on Claude models, so they could share blind spots. Fourth, the tuned five are fitted to themselves, so the held-out set is the untested number.
+A few things I most want a reader to see. First, three runs per case is a small sample, and Case 4 can swing, so this would need more runs. Second, this is text, not voice, on Haiku, not the live model. It is a bench test, definitely not the last gate before production. Third, the agent and the judge both run on Claude models, so they could share blind spots. Fourth, the tuned five were fitted to themselves. The held-out set shows that overfitting cases to the test and agent instructions can hide actions the agent should take in real world scenarios, and that tool failures may have been hidden in my first 4 runs. Fifth, I would trust the held-out score more if it tested other languages for the switching, and tested whether a booking question instead of an insurance question would change the scoring of H5.
 
 ## Running it
 
@@ -59,7 +59,12 @@ Each run writes `results/run_<timestamp>/results.json` (full transcripts, tool c
 | `checks.py` | Deterministic pass or fail checks |
 | `judge.py` | The LLM judge and the quote check |
 | `cases/v2_cases.json` | The five test cases, their code checks, and their judge questions |
+| `cases/heldout_cases.json` | Five held-out cases, run once, never tuned against |
 | `run_eval.py` | Runs cases, scores them, saves results and costs |
 | `regrade.py` | Reruns the judge on saved transcripts without calling the agent |
 | `probes/make_case4_probes.py` | Builds hand-edited Case 4 transcripts, labeled before grading, to test the judge |
 | `results/` | Every run, regrade, and probe set, plus `costs.csv` |
+| `predictions/` | My predictions, committed before each run |
+| `findings/` | My view after each run, in my own words |
+| `run5_transcripts.md` | All 15 held-out calls in one document |
+| `STATUS.md` | Current state, scoreboard, and open items for the next session |
