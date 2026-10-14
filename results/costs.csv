@@ -7,3 +7,4 @@ timestamp,run_id,model,cases,estimated_usd,actual_usd,cumulative_usd
 2026-10-12T09:10:26,regrade_20261012_091026,judge-only claude-opus-5-5,9,0.6138,0.1427,1.1327
 2026-10-12T10:04:05,regrade_20261012_100405,judge-only claude-opus-5-5,48,3.2984,0.9087,2.0414
 2026-10-12T10:21:46,run_20261012_101838,claude-haiku-5-5,15,1.0790,0.2316,2.2730
+2026-10-13T13:58:55,run_20261013_135540,claude-haiku-5-5,15,1.0842,0.1561,2.4291
