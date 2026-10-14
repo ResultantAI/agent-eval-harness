@@ -1,0 +1,4 @@
+case_id,run,category,model,passed,failed_checks,api_calls,input_tokens,output_tokens,cost_usd,judge_cost_usd,latency_s
+friction_01_taken_slot_change_of_mind,1,booking_friction,claude-haiku-5-5,True,,8,21811,848,0.002605,0.012816,12.53
+friction_01_taken_slot_change_of_mind,2,booking_friction,claude-haiku-5-5,True,,8,22339,959,0.002713,0.016800,11.35
+friction_01_taken_slot_change_of_mind,3,booking_friction,claude-haiku-5-5,True,,8,22211,921,0.002682,0.012528,12.49
