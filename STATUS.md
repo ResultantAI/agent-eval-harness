@@ -1,6 +1,6 @@
 # STATUS
 
-Handoff for the next session. Read this first. Written Oct 13, 2026, from git log, results/costs.csv, and the saved results; updated the same day after the run 5 results (35e80a7), Chris's view (88e6e18), the transcripts doc (ae54e59), and the README update (e1d3603) were committed. Docs only: nothing was rerun to write it.
+Handoff for the next session. Read this first. Written Oct 13, 2026, from git log, results/costs.csv, and the saved results; updated the same day after the run 5 results (35e80a7), Chris's view (88e6e18), the transcripts doc (ae54e59), and the README update (e1d3603) were committed. Docs only: nothing was rerun to write it. Updated Oct 14, 2026 for Tests 2 and 3 (results in a88edcc).
 
 Origin: started in session https://claude.ai/code/session_017ZueiC3fEJeW6vz2ThtH72 (AgentReady GTM project, job search chat), continued in https://claude.ai/code/session_012dn8Jiuk7uhDTA6JHi6vYS (Eval Harness project, "Harness public release") and https://claude.ai/code/session_01TXt4h86hSZrAwrkB7VxHPM (Eval Harness project, "held-out set design").
 
@@ -25,6 +25,15 @@ Held-out set (cases/heldout_cases.json), run once, never tuned against. Reported
 | Run | Score | Cost | Commit | What changed |
 |---|---|---|---|---|
 | Run 5, held-out H1 to H5 | 12/15 | $0.1561 | 35e80a7 (results/run_20261013_135540/). Cases at 0b42617, predictions at 12ba63d, agent at c58b110 | First run of five new cases. Agent and judge unchanged |
+
+Controls and new cases. Reported separately from the tuned five and the held-out set.
+
+| Test | Score | Predicted | Cost | Results folder | Read |
+|---|---|---|---|---|---|
+| Test 2, do-nothing agent (fixed reply, no tools) on the tuned five | 0/15 | 9/15 | $0.2185 | results/donothing_20261014_075851 | findings/do_nothing_view.md |
+| Test 3, booking with friction (friction_01_taken_slot_change_of_mind) | 3/3 | 2/3 | $0.0501 | results/friction_20261014_080013 | Chris's Test 3 read not written yet |
+
+Both ran Oct 14 with the agent at c58b110 and the judge unchanged. Scaffolds: 2942fc8 (Test 2), e54ee25 (Test 3). Predictions: predictions/do_nothing_2026-10-13.md, predictions/friction_2026-10-13.md.
 
 Per case, tuned five:
 
@@ -70,18 +79,18 @@ Ungraded note, H5 "read back corrected number": found in 3 of 3 (matched '0147')
 
 Review after the run: all 15 calls in one document at run5_transcripts.md (ae54e59). Chris's answers in his own words at findings/heldout_run5_view.md (88e6e18). His read on H5: "This is a tools failure", and as the caller "I would not have received a callback".
 
-## Locked tests not yet run
+## Locked tests
 
-- Test 2, do-nothing agent: discloses it is an AI, sends every caller to 911 or office hours, never calls a tool; checks whether the suite rewards doing nothing.
-- Test 3, booking with friction: requested slot is taken and the caller changes their mind once; pairs with Test 2.
+- Test 2, do-nothing agent: done Oct 14, 0/15 (predicted 9/15). See Controls and new cases above, and findings/do_nothing_view.md.
+- Test 3, booking with friction: done Oct 14, 3/3 (predicted 2/3). Chris's read not written yet.
 
 ## Open items
 
 Carried over from NEXT.md (e6755e3), README.md (e1d3603), and findings/heldout_run5_view.md (88e6e18).
 
 1. Held-out set: done as run 5 (Test 1). Results committed in 35e80a7. Do not rerun it or tune against it.
-2. Do-nothing agent (Test 2). Not run.
-3. Booking with friction (Test 3). Not run.
+2. Do-nothing agent (Test 2). Done Oct 14: 0/15, results/donothing_20261014_075851. Chris's read: findings/do_nothing_view.md.
+3. Booking with friction (Test 3). Done Oct 14: 3/3, results/friction_20261014_080013. Chris's read not written yet.
 4. More repeats of the tuned five, to see how much Case 4 swings from run to run.
 5. Case 1 order check: "hang up and call 911", not "call 911 and hang up". Run 4 had the right order in all three calls, but nothing checks it.
 6. Untested in the tuned five: the "one or two short sentences" limit, read-back of contact details before request_follow_up, a bilingual greeting, an unannounced language switch. (H2 in the held-out set covers an unannounced switch; H5 records read-back as an ungraded note only.)
@@ -91,6 +100,7 @@ Carried over from NEXT.md (e6755e3), README.md (e1d3603), and findings/heldout_r
 10. Known limits from README: 3 runs per case is a small sample; text not voice, on Haiku not the live model; agent and judge are both Claude models and could share blind spots; the tuned five are fitted to themselves.
 11. From README limit 5 and Chris's view: he would trust the held-out score more with other languages for the switch, and with a booking question in place of the insurance question in an H5 style case. Any such case would be new, not an edit to H1 to H5.
 12. From Chris's view, question 6 and 7: H4 never made the agent look up the schedule, so its pass does not show what he wanted. He wants a test where the agent can look up a patient but asks for a confirming detail (DOB, patient ID) first. He was not sure what a harder H4 would need. Open question, nothing designed yet.
+13. Eval-awareness experiment (none, harness, caller; 5 runs per case per condition on the tuned five): scaffolded in 43cdc9c, not run. Chris writes the prediction first, in its own commit.
 
 Rules that still apply: change the agent and the judge in separate steps. Do not tune the agent against Case 4 again, or against any held-out case. The cost estimate runs about 4x high (EST_JUDGE_OUTPUT_TOKENS = 3000).
 
@@ -106,4 +116,4 @@ No change is recommended for any of these. The held-out set stays untuned.
 
 ## Spend
 
-$2.4291 of the $100.00 cap, per the cumulative column of results/costs.csv (last line: run_20261013_135540, $0.1561).
+$2.6977 of the $100.00 cap, per the cumulative column of results/costs.csv (last line: friction_20261014_080013, $0.0501).
