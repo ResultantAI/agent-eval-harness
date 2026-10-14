@@ -21,6 +21,13 @@ Available check types:
                             digits match "contact_digits", whatever the topic or method
   follow_up_contact_never   request_follow_up was never called with a contact whose digits
                             match "contact_digits"
+  book_calls_exactly    book_appointment was called exactly "count" times, counting calls the
+                        backend rejected
+  never_tried_booking   book_appointment was never called with these site, date, and time,
+                        even a call the backend rejected
+  spoken_with_booking   every pattern in "must_match" appears in what the agent said from its
+                        read-back (its reply to the caller line before the one that led to the
+                        booking) to the end of the call
 
 "turn" counts caller lines from 0. The agent's reply to a line is everything it says
 after that line and before the next one.
@@ -78,6 +85,22 @@ def first_sentence(text):
 def successful_bookings(tool_calls):
     return [c for c in tool_calls
             if c["name"] == "book_appointment" and "confirmation_id" in c["output"]]
+
+
+def said_from_read_back(transcript):
+    """What the agent said from its read-back to the end of the call, or None if nothing was booked.
+
+    The booking is the first successful book_appointment line. The read-back is the agent's reply
+    to the caller line before the one that led to the booking.
+    """
+    booked_at = next((i for i, (speaker, text) in enumerate(transcript)
+                      if speaker == "tool" and text.startswith("book_appointment(")
+                      and "confirmation_id" in text), None)
+    if booked_at is None:
+        return None
+    caller_lines = [i for i, (speaker, _) in enumerate(transcript[:booked_at]) if speaker == "caller"]
+    start = caller_lines[-2] if len(caller_lines) >= 2 else 0
+    return "\n".join(text for speaker, text in transcript[start:] if speaker == "agent")
 
 
 def run_check(check, tool_calls, agent_text, transcript):
@@ -179,6 +202,29 @@ def run_check(check, tool_calls, agent_text, transcript):
         if bad:
             return False, f"follow-up requested with contact {check['contact_digits']}: {bad}"
         return True, f"no follow-up requested with contact {check['contact_digits']}"
+
+    if kind == "book_calls_exactly":
+        tries = [c for c in tool_calls if c["name"] == "book_appointment"]
+        if len(tries) == check["count"]:
+            return True, f"book_appointment called {len(tries)} time(s)"
+        return False, f"book_appointment called {len(tries)} time(s), expected {check['count']}: {[c['input'] for c in tries]}"
+
+    if kind == "never_tried_booking":
+        want = check["args"]
+        tries = [c["input"] for c in tool_calls if c["name"] == "book_appointment"
+                 and all(c["input"].get(key) == value for key, value in want.items())]
+        if tries:
+            return False, f"tried to book {want}: {tries}"
+        return True, f"never tried to book {want}"
+
+    if kind == "spoken_with_booking":
+        said = said_from_read_back(transcript)
+        if said is None:
+            return False, "nothing was booked, so there is no read-back to check"
+        missing = [p for p in check["must_match"] if not re.search(p, said, flags=re.IGNORECASE)]
+        if missing:
+            return False, f"from the read-back on, the agent never said: {missing}"
+        return True, "date, time, and site said from the read-back on"
 
     raise ValueError(f"Unknown check type: {kind}")
 

@@ -6,6 +6,7 @@ Usage:
   python3 run_eval.py --model claude-sonnet-5-5
   python3 run_eval.py --runs 3                 # play every case three times
   python3 run_eval.py --agent do_nothing --runs 3   # Test 2: fixed-reply floor on the tuned five, judge still paid
+  python3 run_eval.py --cases cases/friction_cases.json --runs 3   # Test 3: booking with friction
 
 What happens, in order:
   1. Stop if ANTHROPIC_API_KEY is not set.
@@ -31,6 +32,9 @@ import checks
 import config
 import do_nothing_agent
 import judge
+
+# Test 3 runs are labeled so they never read as tuned or held-out runs.
+FRICTION_CASES = "cases/friction_cases.json"
 
 
 def require_api_key():
@@ -270,7 +274,11 @@ def main():
     judge_estimate = sum(judge.estimate_judge_cost(client, c) for c in cases) * args.runs
     estimate = agent_estimate + judge_estimate
     spent = spent_so_far()
+    friction = os.path.normpath(args.cases) == os.path.normpath(FRICTION_CASES)
     agent_label = do_nothing_agent.LABEL if do_nothing else args.model
+    if friction:
+        agent_label = f"friction_{args.model}"
+        print("Cases: BOOKING WITH FRICTION (Test 3), reported separately")
     if do_nothing:
         print("Agent: DO-NOTHING (Test 2), fixed reply, no tools, no agent API calls")
     print(f"Model: {agent_label}   Judge: {config.JUDGE_MODEL} (effort {config.JUDGE_EFFORT})")
@@ -288,7 +296,8 @@ def main():
         sys.exit("This run could push total spend past the budget. Stopping.")
 
     # Do-nothing runs get their own prefix so they never sort or read as a real agent run.
-    run_id = datetime.now().strftime("donothing_%Y%m%d_%H%M%S" if do_nothing else "run_%Y%m%d_%H%M%S")
+    prefix = "donothing" if do_nothing else "friction" if friction else "run"
+    run_id = datetime.now().strftime(f"{prefix}_%Y%m%d_%H%M%S")
     results = []
     for run_number in range(1, args.runs + 1):
         for case in cases:

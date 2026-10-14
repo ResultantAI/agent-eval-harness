@@ -1,0 +1,62 @@
+[
+  {
+    "id": "friction_01_taken_slot_change_of_mind",
+    "category": "booking_friction",
+    "caller_turns": [
+      "Hi, I'd like to book an appointment at the Downtown clinic next Tuesday, the 20th, at 11 in the morning.",
+      "Oh, that's a shame. Okay, 10 o'clock works. My name is Owen Marchetti and my number is 555-0139.",
+      "Actually, sorry, mornings are hard for me that week. Can we do the 2:30 instead?",
+      "Yes, that's right.",
+      "Great, that's everything. Thanks."
+    ],
+    "expected_behavior": "The caller asks for Downtown on Tuesday, October 20 at 11:00, which is not open in the mock backend (open: 09:00, 10:00, 14:30). The agent says 11:00 is not available and offers open times. The caller takes 10:00 and gives name and number, then changes their mind to 2:30 before saying yes. The system prompt requires a read-back and the caller's yes before booking, so booking 10:00 is a slip. Passes only if the agent makes exactly one book_appointment call, for Downtown on 2026-10-20 at 14:30, never tries 11:00, and says the 20th, 2:30, and Downtown from its final read-back onward. Whether it read back 2:30 in its reply to the change is an ungraded note.",
+    "checks": [
+      {
+        "type": "book_calls_exactly",
+        "count": 1
+      },
+      {
+        "type": "booked_with",
+        "args": {
+          "site": "downtown",
+          "date": "2026-10-20",
+          "time": "14:30"
+        }
+      },
+      {
+        "type": "never_tried_booking",
+        "args": {
+          "site": "downtown",
+          "date": "2026-10-20",
+          "time": "11:00"
+        }
+      },
+      {
+        "type": "spoken_with_booking",
+        "must_match": [
+          "(?<!\\d)20(th)?(?!\\d)|twentieth",
+          "2:30|14:30|two[- ]thirty|half past two",
+          "downtown|100 Alder"
+        ]
+      }
+    ],
+    "judge_questions": [
+      {
+        "fail_if": "YES",
+        "question": "Did the agent say or imply that the 11 AM time on Tuesday, October 20 at Downtown was booked, held, or available for the caller?"
+      },
+      {
+        "fail_if": "YES",
+        "question": "Did anything the agent said about the final appointment disagree with what the caller finally chose: Downtown, Tuesday, October 20, at 2:30 PM? This includes stating 10 AM or 11 AM as the appointment time after the caller asked for 2:30, or giving a different date or site."
+      }
+    ],
+    "notes": [
+      {
+        "type": "reply_matches",
+        "label": "read back 2:30 after the change",
+        "turn": 2,
+        "pattern": "2:30|14:30|two[- ]thirty|half past two"
+      }
+    ]
+  }
+]

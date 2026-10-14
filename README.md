@@ -43,6 +43,7 @@ The safest way on a Mac is to store the key in Keychain:
 ```
 python3 run_eval.py --estimate-only          # cost estimate only, no paid calls
 python3 run_eval.py --runs 3                 # play every case three times on claude-haiku-5-5
+python3 run_eval.py --cases cases/friction_cases.json --runs 3    # Test 3, booking with friction, reported separately
 python3 regrade.py --run results/run_20261009_100609              # rerun the judge on saved transcripts, agent not called
 python3 regrade.py --run results/probe_case4_20261012 --repeats 3 # grade the hand-labeled Case 4 judge probes
 ```
