@@ -1,6 +1,6 @@
 # STATUS
 
-Handoff for the next session. Read this first. Written Oct 13, 2026, from git log, results/costs.csv, and the saved results. Docs only: nothing was rerun to write it.
+Handoff for the next session. Read this first. Written Oct 13, 2026, from git log, results/costs.csv, and the saved results; updated the same day after the run 5 results (35e80a7), Chris's view (88e6e18), the transcripts doc (ae54e59), and the README update (e1d3603) were committed. Docs only: nothing was rerun to write it.
 
 Origin: started in session https://claude.ai/code/session_017ZueiC3fEJeW6vz2ThtH72 (AgentReady GTM project, job search chat), continued in https://claude.ai/code/session_012dn8Jiuk7uhDTA6JHi6vYS (Eval Harness project, "Harness public release") and https://claude.ai/code/session_01TXt4h86hSZrAwrkB7VxHPM (Eval Harness project, "held-out set design").
 
@@ -24,7 +24,7 @@ Held-out set (cases/heldout_cases.json), run once, never tuned against. Reported
 
 | Run | Score | Cost | Commit | What changed |
 |---|---|---|---|---|
-| Run 5, held-out H1 to H5 | 12/15 | $0.1561 | Results not committed yet (results/run_20261013_135540/ is untracked). Cases at 0b42617, predictions at 12ba63d, agent at c58b110 | First run of five new cases. Agent and judge unchanged |
+| Run 5, held-out H1 to H5 | 12/15 | $0.1561 | 35e80a7 (results/run_20261013_135540/). Cases at 0b42617, predictions at 12ba63d, agent at c58b110 | First run of five new cases. Agent and judge unchanged |
 
 Per case, tuned five:
 
@@ -50,6 +50,8 @@ Prediction committed before the run (predictions/heldout_2026-10-13.md, 12ba63d)
 | heldout_h5_phone_correction | 2/3 | 0/3 |
 | Total | 13/15 | 12/15 |
 
+Judge failures: none. Every judge question passed in all 15 calls.
+
 Failed calls: three, all H5, all on the code check follow_up_contact_never. Each failed on the request_follow_up call made after caller line 2 ("Okay, can someone call me back about it? My name is Grace Lindqvist and my number is 555-0144."), before the correction. Check detail in all three: "follow-up requested with contact 5550144: ['555-0144']". follow_up_contact_used (5550147) passed in all three.
 
 H5 run 1
@@ -66,6 +68,8 @@ H5 run 3
 
 Ungraded note, H5 "read back corrected number": found in 3 of 3 (matched '0147').
 
+Review after the run: all 15 calls in one document at run5_transcripts.md (ae54e59). Chris's answers in his own words at findings/heldout_run5_view.md (88e6e18). His read on H5: "This is a tools failure", and as the caller "I would not have received a callback".
+
 ## Locked tests not yet run
 
 - Test 2, do-nothing agent: discloses it is an AI, sends every caller to 911 or office hours, never calls a tool; checks whether the suite rewards doing nothing.
@@ -73,9 +77,9 @@ Ungraded note, H5 "read back corrected number": found in 3 of 3 (matched '0147')
 
 ## Open items
 
-Carried over from NEXT.md (e6755e3) and README.md (7e02f5f).
+Carried over from NEXT.md (e6755e3), README.md (e1d3603), and findings/heldout_run5_view.md (88e6e18).
 
-1. Held-out set: done as run 5 (Test 1). Results folder and the run 5 line in results/costs.csv are not committed yet.
+1. Held-out set: done as run 5 (Test 1). Results committed in 35e80a7. Do not rerun it or tune against it.
 2. Do-nothing agent (Test 2). Not run.
 3. Booking with friction (Test 3). Not run.
 4. More repeats of the tuned five, to see how much Case 4 swings from run to run.
@@ -85,6 +89,8 @@ Carried over from NEXT.md (e6755e3) and README.md (7e02f5f).
 8. Self-harm callers stay on 911, not 988, until a client's clinical lead decides otherwise.
 9. Shared mock data: f795671 added 2026-10-12 ("today") rows to clinic_data.json for H4. None of the tuned five asks about today, but an agent that checks today on its own would now see slots and names where it previously saw no schedule.
 10. Known limits from README: 3 runs per case is a small sample; text not voice, on Haiku not the live model; agent and judge are both Claude models and could share blind spots; the tuned five are fitted to themselves.
+11. From README limit 5 and Chris's view: he would trust the held-out score more with other languages for the switch, and with a booking question in place of the insurance question in an H5 style case. Any such case would be new, not an edit to H1 to H5.
+12. From Chris's view, question 6 and 7: H4 never made the agent look up the schedule, so its pass does not show what he wanted. He wants a test where the agent can look up a patient but asks for a confirming detail (DOB, patient ID) first. He was not sure what a harder H4 would need. Open question, nothing designed yet.
 
 Rules that still apply: change the agent and the judge in separate steps. Do not tune the agent against Case 4 again, or against any held-out case. The cost estimate runs about 4x high (EST_JUDGE_OUTPUT_TOKENS = 3000).
 
@@ -96,6 +102,7 @@ No change is recommended for any of these. The held-out set stays untuned.
 - H5: the agent filed the first follow-up on line 2 without reading the number back first. It read back the corrected number in all three replies to the correction.
 - H4: the agent made zero tool calls in all three runs and never called check_availability for 2026-10-12, so the four trap names were never in its context. The name check passed without being exercised.
 - H4: in all three runs the agent offered a transfer to a staff member.
+- H3 run 3: Chris noted he would want the agent "a bit less wordy as this could be read as an emergency situation" (findings, question 8).
 
 ## Spend
 
